@@ -1,0 +1,53 @@
+Task 1
+
+Implement a GClock replacement policy for Buffer replacement with reference counter being passed as parameter
+ BasicBufferMgr.java
+o Changed the constructor of BasicBufferMgr to include the argument passed at runtime: reference counter value for the GClock policy.
+o In the method unpin(Buffer), initialized the reference counter of the buffer unpinned with the value passed at runtime.
+o In the method chooseUnpinnedBuffer(), implemented the GClock policy to choose an unpinned buffer when page needs to be replaced. If the reference counter is not zero, decremented the counter till it becomes 0 and then the respective buffer is returned for replacement. The loop for searching for the buffer can be run maximum (reference counter + 1) times to avoid infinite execution.
+ Buffer.java
+o Changed the setReferenceCounter() to initialize it with the reference value passed as command line argument.
+o Added functions decrementReferenceCounter() which decrements the value of reference counter and getReferenceCounter() which returns the current reference counter value.
+ BufferMgr.java
+o Changed the constructor BufferMgr to include the parameter referenceCounter , passed as a command line argument.
+
+
+Task 2
+
+Implement a hashmap to keep track of buffer pool
+
+ BasicBufferMgr.java
+o Created a concurrent hashmap(bufferPoolMap) to keep track of the buffer pool keyed on the clock they contain. Concurrent hashmap was used to improve concurrency and provide synchronization.Initially the buffer is unallocated, when it is assigned first to a block, it is allocated.
+o Changed method pin() : when a buffer is replaced, map is changed, i.e. mapping for the old block is removed and mapping for the new block is added.
+o Changed method findExistingBuffer(Block) to determine if the block passed as parameter is currently in the buffer.
+o In pin and unpin, following information is printed
+ Bufferpool contents in order
+ Pincount for each block in Bufferpool
+ Reference count for each block
+ Number of available buffers in Bufferpool
+ Block replaced
+
+
+Task 3
+
+Requirements :
+1. You will need to revise class Buffer so that it has two additional methods: saveBlock copies the contents of the buffer to a new block in the file of saved blocks; and restoreBlock copies the contents of a saved block back to the buffer. 
+2. Then revise the interface LogRecord to have a new type of log record, UPDATE, having value 6 and modify LogRecordIterator to handle this new record type.  Also create a new class UpdateRecord to handle update records.  An update record contains a txid, the filename and block number of the block being updated, and the block number in the saved file where the block gets saved. 
+3. Then, modify the methods setInt and setString in class RecoveryMgr so that they write an update log record instead of a setint or setstring log record.  The recovery manager keeps track of the blocks that have been modified, so that the methods will save the block (and write the update record) only the first time it is updated.  
+
+
+ Buffer.java
+o Added method saveBlock(filename) which takes the name of the recovery file as parameter and copies the contents of the buffer to a new block in the recovery file. To create a new block in the recovery file, current size of the file is determined to determine the new block number used as a parameter in creating a new block.
+o Added method restoreBlock(filename, blocknumber) which reads the contents from the specified block identified by the passed blocknumber, in the recovery file to the buffer. After this buffer writes it into the original block where the content needs to be restored. This is to make block as a mean of recovery.
+ LogRecord.java
+o Modified the interface LogRecord to include UPDATE type of record with value 6.
+ LogRecordIterator.java
+o Modified the method next() to handle UPDATE type log record.
+ UpdateRecord.java
+o Created a class UpdateRecord which handles UPDATE type of record.
+o It is initialized with the transaction number, filename of the block being updated, block number of the block being updated and block number in the recovery file where it is saved.
+o A new record object is created in method writeToLog() with the given parameters.
+o Changed the method undo(transaction number) in UpdateRecord which restores the modified block by recovering the original block saved in recovery file.
+ RecoveryMgr.java
+o Changed the methods setInt and setString to write an UpdateRecordLog instead of SetInt and SetString log record. If the block is modified for the first time , a new Updaterecord log is written to Logfile.
+o Also saveBlock is called to copy the block contents into the recovery file
